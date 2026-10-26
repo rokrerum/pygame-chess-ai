@@ -198,61 +198,64 @@ class AI:
 
 
     def ai(self, board, turn, my_color, en_passant, castling):
-        move = self.min_max(3, board, my_color, turn, en_passant, castling, float("-inf"), float("inf"))
+        move = self.min_max(4, board, my_color, turn, en_passant, castling, float("-inf"), float("inf"))
         #print("ai move:", move)
         return move
 
 
     def min_max(self, depht, board, my_color, turn, en_passant, castling, alpha, beta):
-        if depht == 0 or self.game_ended(board, my_color, castling, en_passant, turn):
-            score = self.evaluating(board, self.all_pieces(board), my_color, castling, turn, en_passant)
+        pieces = self.all_pieces(board)
+        if depht == 0:
+            moves = [True] if self.has_any_move(board, pieces, turn, my_color, en_passant, castling) else []
+        else:
+            moves = self.all_moves(board, pieces, turn, my_color, en_passant, castling)
+
+        if depht == 0 or self.game_ended(board, my_color, castling, en_passant, turn, moves):
+            score = self.evaluating(board, pieces, my_color, castling, turn, en_passant, moves)
+            if score >= 999999:  # AI daje mata: im szybciej, tym lepiej
+                score += depht
+            elif score <= -999999:  # AI dostaje mata: im szybciej, tym gorzej
+                score -= depht
             return (score, None)
 
         best_move = None
         next_turn = "black" if turn == "white" else "white"
 
+        VAL = {"p": 1, "n": 3, "b": 3, "r": 5, "q": 9, "k": 0, "": 0}
+        flat = [(src, mv) for src, dsts in moves for mv in dsts]
+        flat.sort(key=lambda m: -VAL[board[m[1][0]][m[1][1]].lower()]) # sorts all moves in oreder of what it takes
+
         cutoff = False
         if my_color != turn:  # ai move maximalizing
             max_val = -999999999
-            pieces = self.all_pieces(board)
-            moves = self.all_moves(board, pieces, turn, my_color, en_passant, castling)
-            for move_set in range(len(moves)):
-                for move in moves[move_set][1]:
-                    board_after_move = self.board_after_move(board, (moves[move_set][0], move)) #
-                    new_castling = self.move_castle(board_after_move, castling, move[0], move[1])
-                    new_en_passant = self.move_en_passant(board_after_move, en_passant, moves[move_set][0][0], move[0], move[1])
-                    value = self.min_max(depht - 1, board_after_move, my_color, next_turn, new_en_passant, new_castling, alpha, beta)
-                    if value[0] > max_val:
-                        max_val = value[0]
-                        best_move = (moves[move_set][0], move)
-                    alpha = max(alpha, max_val)
-                    if alpha >= beta:
-                        cutoff = True
-                        break
-                if cutoff:
+            for src, mv in flat:
+                board_after_move = self.board_after_move(board, (src, mv)) #
+                new_castling = self.move_castle(board_after_move, castling, mv[0], mv[1])
+                new_en_passant = self.move_en_passant(board_after_move, en_passant, src[0], mv[0], mv[1])
+                value = self.min_max(depht - 1, board_after_move, my_color, next_turn, new_en_passant, new_castling, alpha, beta)
+                if value[0] > max_val:
+                    max_val = value[0]
+                    best_move = (src, mv)
+                alpha = max(alpha, max_val)
+                if alpha >= beta:
+                    cutoff = True
                     break
             return (max_val, best_move)
 
         else:  # human move  min
             min_val = 999999999
-            pieces = self.all_pieces(board)
-            moves = self.all_moves(board, pieces, turn, my_color, en_passant, castling)
-            for move_set in range(len(moves)):
-                for move in moves[move_set][1]:
-                    board_after_move = self.board_after_move(board, (moves[move_set][0], move)) # old location and new in variables
-                    new_castling = self.move_castle(board_after_move, castling, move[0], move[1])
-                    new_en_passant = self.move_en_passant(board_after_move, en_passant, moves[move_set][0][0], move[0], move[1])
-                    value = self.min_max(depht - 1, board_after_move, my_color, next_turn, new_en_passant, new_castling, alpha, beta)
-                    if min_val > value[0]:
-                        best_move = (moves[move_set][0], move)
-                        min_val = value[0]
-                    beta = min(beta, min_val)
-                    if beta <= alpha:
-                        cutoff = True
-                        break
-                if cutoff:
+            for src, mv in flat:
+                board_after_move = self.board_after_move(board, (src, mv)) # old location and new in variables
+                new_castling = self.move_castle(board_after_move, castling, mv[0], mv[1])
+                new_en_passant = self.move_en_passant(board_after_move, en_passant, src[0], mv[0], mv[1])
+                value = self.min_max(depht - 1, board_after_move, my_color, next_turn, new_en_passant, new_castling, alpha, beta)
+                if min_val > value[0]:
+                    best_move = (src, mv)
+                    min_val = value[0]
+                beta = min(beta, min_val)
+                if beta <= alpha:
+                    cutoff = True
                     break
-
             return (min_val, best_move)
 
 
@@ -289,7 +292,6 @@ class AI:
 
                     if len(move[1]) >= 1:  #checks if there is any move for figure
                         moves.append(move)
-
         return moves
 
 
@@ -306,17 +308,18 @@ class AI:
         return pieces
 
 
-    def evaluating(self, board, pieces, my_color, castling, turn, en_passant):
-        chess_moves = chess.piece_moves()
-        game_end_state = chess_moves.game_end_chcek(board, my_color, castling, turn, en_passant)
-        if game_end_state[2] == "mate":
-            if my_color == "black":
-                return -999999 if game_end_state[0] else 999999
-            else:
-                return -999999 if game_end_state[1] else 999999
+    def evaluating(self, board, pieces, my_color, castling, turn, en_passant, moves):
+        if moves == []:
+            chess_moves = chess.piece_moves()
+            game_end_state = chess_moves.game_end_chcek(board, my_color, castling, turn, en_passant)
+            if game_end_state[2] == "mate":
+                if my_color == "black":
+                    return -999999 if game_end_state[0] else 999999
+                else:
+                    return -999999 if game_end_state[1] else 999999
 
-        elif game_end_state[2] == "stalemate":
-            return 0
+            elif game_end_state[2] == "stalemate":
+                return 0
 
         values = {
             "p": 1,
@@ -346,12 +349,13 @@ class AI:
         return score
 
 
-    def game_ended(self, board, my_color, castling, en_passant, turn):
-        chess_moves = chess.piece_moves()
-        game_end_state = chess_moves.game_end_chcek(board, my_color, castling, turn, en_passant)
+    def game_ended(self, board, my_color, castling, en_passant, turn, moves):
+        if moves == []:
+            chess_moves = chess.piece_moves()
+            game_end_state = chess_moves.game_end_chcek(board, my_color, castling, turn, en_passant)
 
-        if game_end_state[2] != None:
-            return True
+            if game_end_state[2] != None:
+                return True
         return False
 
 
@@ -415,4 +419,25 @@ class AI:
             return [False]
 
 
+    def has_any_move(self, board, pieces, turn, my_color, en_passant, castling):
+        cm = chess.piece_moves()
+        ROOK_DIRS = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+        BISHOP_DIRS = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
+        for r, c in pieces[0 if turn == "white" else 1]:
+            p = board[r][c].lower()
+            if p == "p":
+                found = cm.pawn_moves(board, r, c, turn, my_color, en_passant)
+            elif p == "n":
+                found = cm.knight_moves(board, r, c, turn, my_color)
+            elif p == "b":
+                found = cm.sliding_moves(board, r, c, turn, my_color, BISHOP_DIRS)
+            elif p == "r":
+                found = cm.sliding_moves(board, r, c, turn, my_color, ROOK_DIRS)
+            elif p == "q":
+                found = cm.sliding_moves(board, r, c, turn, my_color, ROOK_DIRS + BISHOP_DIRS)
+            else:
+                found = cm.king_moves(board, r, c, turn, castling, my_color)
+            if found:
+                return True
+        return False
 # made by: rokrerum

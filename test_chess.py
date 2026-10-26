@@ -54,13 +54,13 @@ MATE_IN_ONE_BLACK_TO_MOVE_LOSES = [
 
 def test_mate_in_one_ai_plays_white(ai):
     result = ai.ai(MATE_IN_ONE_BLACK_TO_MOVE_LOSES, "white", "black", [False], default_castling())
-    assert result[0] == 999999
+    assert result[0] >= 999999
     assert result[1] == ((5, 1), (3, 3))
 
 
 def test_mate_in_one_ai_plays_black(ai):
     result = ai.ai(MATE_IN_ONE_WHITE_TO_MOVE_LOSES, "black", "white", [False], default_castling())
-    assert result[0] == 999999
+    assert result[0] >= 999999
     assert result[1] == ((2, 1), (4, 3))
 
 
@@ -326,7 +326,7 @@ def test_game_end_chcek_stalemate_sets_only_that_color(cm):
 def test_game_end_chcek_integrates_correctly_with_evaluating(ai):
     """Full regression through the new evaluating()/game_ended() wiring."""
     result = ai.ai(MATE_IN_ONE_WHITE_TO_MOVE_LOSES, "black", "white", [False], default_castling())
-    assert result[0] == 999999
+    assert result[0] >= 999999
     assert result[1] == ((2, 1), (4, 3))
 
 

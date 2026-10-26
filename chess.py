@@ -19,12 +19,9 @@ class piece_moves:
         self.board_after_move[row_move][col_move] = board[row][col]
         self.board_after_move[row][col] = ""
 
-        if self.check(self.board_after_move, my_color)[0][0] and turn == "white":  # if there is check
-            return False
-        elif self.check(self.board_after_move, my_color)[1][0] and turn == "black":
-            return False
-
-        return True
+        side = 0 if turn == "white" else 1
+        result = self.check(self.board_after_move, my_color, only=side)
+        return not result[side][0]
 
 
     def if_king_near(self, board, row, col, turn):
@@ -194,22 +191,20 @@ class piece_moves:
         return posible_moves
 
 
-    def check(self, board, my_color):
+    def check(self, board, my_color, only=None):
         kings = [[], []]
-        for i in range(8):
-            for j in range(8):
-                if board[i][j] == "k":
-                    kings[0] = [i, j]
-                elif board[i][j] == "K":
-                    kings[1] = [i, j]
+        for i, line in enumerate(board):
+            if "k" in line:
+                kings[0] = [i, line.index("k")]
+            if "K" in line:
+                kings[1] = [i, line.index("K")]
 
-        if len(kings[0]) == 0 or len(kings[
-                                         1]) == 0:  # if there is no king this if will pass that both kings are in check so move isn't posible
+        if len(kings[0]) == 0 or len(kings[1]) == 0:  # if there is no king this if will pass that both kings are in check so move isn't posible
             return [[True], [True]]
 
         posible_checks = [[False, (kings[0][0], kings[0][1])], [False, (kings[1][0], kings[1][1])]]
 
-        for king_turn in range(2):
+        for king_turn in ((0, 1) if only is None else (only,)):
             row = kings[king_turn][0]
             col = kings[king_turn][1]
 
@@ -295,7 +290,6 @@ class piece_moves:
                             posible_checks[king_turn].append((i[0], i[1]))
                     else:
                         break
-
         return posible_checks
 
 
@@ -303,7 +297,6 @@ class piece_moves:
         game_state = [False, False, None]
         check = self.check(board, my_color)
         color = ["white", "black"]
-
 
         BISHOP_DIRS = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
         ROOK_DIRS = [(-1, 0), (1, 0), (0, -1), (0, 1)]
@@ -317,8 +310,7 @@ class piece_moves:
                         if (color_turn == 0 and board[r][c].islower() and turn == "white") or (
                                 color_turn == 1 and board[r][c].isupper() and turn == "black"):
                             if board[r][c].lower() == "p":
-                                posible_moves.extend(
-                                    self.pawn_moves(board, r, c, color[color_turn], my_color, en_passant))
+                                posible_moves.extend(self.pawn_moves(board, r, c, color[color_turn], my_color, en_passant))
 
                             elif board[r][c].lower() == "n":
                                 posible_moves.extend(self.knight_moves(board, r, c, color[color_turn], my_color))
@@ -333,8 +325,7 @@ class piece_moves:
                                 posible_moves.extend(self.sliding_moves(board, r, c, color[color_turn], my_color, QUEEN_DIRS))
 
                             elif board[r][c].lower() == "k":
-                                posible_moves.extend(
-                                    self.king_moves(board, r, c, color[color_turn], castling, my_color))
+                                posible_moves.extend(self.king_moves(board, r, c, color[color_turn], castling, my_color))
 
                 moves = len(posible_moves)
 
