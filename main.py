@@ -207,14 +207,14 @@ class game_gui(Game, Menu_gui):
 
     def to_screen(self, row, col, my_color):
         if my_color == "white":
-            return 7 - row, 7 - col
-        return row, col
+            return 7 - row, col
+        return row, 7 - col
 
 
     def to_board(self, screen_row, screen_col, my_color):
         if my_color == "white":
-            return 7 - screen_row, 7 - screen_col
-        return screen_row, screen_col
+            return 7 - screen_row, screen_col
+        return screen_row, 7 - screen_col
 
 
     def game_interface(self, x=900, y=600):
@@ -307,22 +307,14 @@ class game_gui(Game, Menu_gui):
             for move in self.last_move:
                 highlight_surface = pygame.Surface((square_size, square_size), pygame.SRCALPHA)
                 highlight_surface.fill((255, 215, 0, 90))  # złoty, półprzezroczysty
-                if my_color == "white":
-                    screen.blit(
-                        highlight_surface,
-                        (
-                            ((abs(move[1] - 7) + 1) * square_size) - (square_size - border_size),
-                            ((abs(move[0] - 7) + 1) * square_size) - (square_size - border_size),
-                        )
+                row, col = self.to_board(move[0], move[1], my_color)
+                screen.blit(
+                    highlight_surface,
+                    (
+                        ((col + 1) * square_size) - (square_size - border_size),
+                        ((row + 1) * square_size) - (square_size - border_size),
                     )
-                else:
-                    screen.blit(
-                        highlight_surface,
-                        (
-                            ((move[1] + 1) * square_size) - (square_size - border_size),
-                            ((move[0] + 1) * square_size) - (square_size - border_size),
-                        )
-                    )
+                )
         #pygame.display.update()
 
 
@@ -361,7 +353,7 @@ class game_gui(Game, Menu_gui):
         pygame.display.update()
 
     def game_ended(self, what_happend, turn):
-        font_win_text = pygame.font.Font('freesansbold.ttf', int(border_size * 1.7))
+        font_win_text = pygame.font.Font('freesansbold.ttf', int(border_size * 1.4))
         font_button = pygame.font.Font('freesansbold.ttf', border_size)
 
         panel_rect = (square_size * 1, square_size * 2.75, square_size * 7, square_size * 3.5)
@@ -369,7 +361,8 @@ class game_gui(Game, Menu_gui):
         pygame.draw.rect(screen, (255, 215, 0), panel_rect, 3, border_radius=14)
 
         if what_happend == "mate":
-            text = font_win_text.render(f"{turn.capitalize()} wygrywa!", True, (255, 215, 0))
+            winner = "Białe" if turn == "white" else "Czarne"
+            text = font_win_text.render(f"{winner} wygrywają!", True, (255, 215, 0))
             text_rect = text.get_rect(center=(square_size * 4.5, square_size * 4.1))
             screen.blit(text, text_rect)
 
