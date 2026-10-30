@@ -4,7 +4,6 @@ from pygame_menu.examples import create_example_window
 import chess
 import random
 import chess_ai
-import multiplayer
 
 global posible_moves
 posible_moves = []
@@ -161,7 +160,6 @@ class Menu_gui:
         play = [
             self.style_button(self.menu.add.button('Graj z AI', self.start_the_game_against_ia), primary=True),
             self.style_button(self.menu.add.button('Graj solo', self.start_the_game_singleplayer)),
-            self.style_button(self.menu.add.button('Multiplayer', self.start_the_game_multiplayer)),
         ]
         exit_btn = self.style_button(self.menu.add.button('Wyjście', pygame_menu.events.EXIT),
                                      bg=(60, 30, 30), border=(200, 80, 80))
@@ -184,14 +182,6 @@ class Menu_gui:
 
 
     def start_the_game_against_ia(self):
-        global two_players
-        two_players = True
-        self.menu.disable()
-        game_interface_var = game_gui()
-        game_interface_var.game_interface()
-
-
-    def start_the_game_multiplayer(self) -> None:
         global two_players
         two_players = True
         self.menu.disable()
